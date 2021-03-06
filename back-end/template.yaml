@@ -1,0 +1,64 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Resources:
+  MySecureHttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      DefinitionBody:
+        openapi: "3.0"
+        info:
+          title: !Sub ${AWS::StackName}-HttpApi
+          version: "1.0"
+        paths:
+          /:
+            get:
+              responses: {}
+      FailOnWarnings: true
+      CorsConfiguration:
+        AllowHeaders:
+          - Authorization
+          - Content-Type
+        AllowMethods:
+          - "*"
+        AllowOrigins:
+          - "*"
+      Auth:
+        Authorizers:
+          MyOktaAuthorizer:
+            IdentitySource: $request.header.Authorization
+            JwtConfiguration:
+              issuer: https://dev-95390738.okta.com/oauth2/default
+              audience:
+                - api://default
+        DefaultAuthorizer: MyOktaAuthorizer
+  MyFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-MyFunction
+      Description: !Sub
+        - Stack ${StackTagName} Environment ${EnvironmentTagName} Function ${ResourceName}
+        - ResourceName: MyFunction
+      CodeUri: src/myFunction
+      Handler: index.handler
+      Runtime: nodejs12.x
+      MemorySize: 3008
+      Timeout: 30
+      Tracing: Active
+      Policies:
+        - AWSXrayWriteOnlyAccess
+      Events:
+        MySecureHttpApiGET:
+          Type: HttpApi
+          Properties:
+            Path: /
+            Method: GET
+            ApiId: !Ref MySecureHttpApi
+            PayloadFormatVersion: "2.0"
+            TimeoutInMillis: 29000
+Parameters:
+  StackTagName:
+    Type: String
+    Description: Stack Name (injected by Stackery at deployment time)
+  EnvironmentTagName:
+    Type: String
+    Description: Environment Name (injected by Stackery at deployment time)

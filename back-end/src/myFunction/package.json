@@ -1,0 +1,10 @@
+{
+  "name": "function",
+  "version": "1.0.0",
+  "scripts": {
+    "deploy": "cd ../../ && stackery deploy --aws-profile default --env-name dev --git-ref $(git rev-parse --verify HEAD)"
+  },
+  "devDependencies": {
+    "aws-sdk": "~2"
+  }
+}
